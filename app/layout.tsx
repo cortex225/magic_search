@@ -5,6 +5,8 @@ import { Icons } from "@/components/Icons";
 import SearchBar from "@/components/SeacrhBar";
 import WordRotate from "@/components/ui/word-rotate";
 import { Suspense } from "react";
+import Image from "next/image";
+import myGif from "@/public/Animation LottieFiles.gif";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -53,7 +55,9 @@ export default function RootLayout({
 
           <div className="mx-auto max-w-7xl px-6 pb-24 pt-10 sm:pb-32 lg:flex gap-16 lg:px-8 lg:py-24">
             <div className="h-full w-full flex flex-col items-center gap-4">
-              <Icons.Sparkles className="h-16 w-16" />
+              {/* <Icons.Sparkles className="h-16 w-16" /> */}
+            
+              <Image src={myGif} alt="my gif" height={120} width={120} />
 
               <h1 className="tracking-tight text-4xl sm:text-6xl font-bold">
                 MagicSearch
@@ -62,7 +66,7 @@ export default function RootLayout({
               <p className="max-w-xl text-center text-lg text-slate-700">
                 A beautifully designed, hybrid search engine that enhances
                 search accuracy by querying semantically related results.
-               
+            
               </p>
                <WordRotate
                   className="text-gray-400 text-md sm:text-base"
@@ -76,7 +80,7 @@ export default function RootLayout({
                   ]}
                 />
 
-              <div className="mx-auto mt-16 w-full max-w-2xl flex flex-col">
+              <div className="mx-auto mt-3 w-full max-w-2xl flex flex-col">
                 <Suspense fallback={<div>Loading...</div>}>
                   <SearchBar />
                 </Suspense>
