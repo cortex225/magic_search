@@ -1,32 +1,38 @@
-import { db } from '@/app/db'
-import { Product, productsTable } from '@/app/db/schema'
-import { vectorize } from '@/lib/vectorize'
-import { Index } from '@upstash/vector'
-import { sql } from 'drizzle-orm'
-import { X } from 'lucide-react'
-import Image from 'next/image'
-import Link from 'next/link'
-import { redirect } from 'next/navigation'
+import { db } from '@/app/db';
+import { Product, productsTable } from '@/app/db/schema';
+import { vectorize } from '@/lib/vectorize';
+import { Index } from '@upstash/vector';
+import { sql } from 'drizzle-orm';
+import { X } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
+// Typage des paramètres de recherche
 interface PageProps {
   searchParams: {
-    [key: string]: string | string[] | undefined
-  }
+    [key: string]: string | string[] | undefined;
+  };
 }
 
-export type CoreProduct = Omit<Product, 'createdAt' | 'updatedAt'>
+// Typage du produit de base (sans les timestamps)
+export type CoreProduct = Omit<Product, 'createdAt' | 'updatedAt'>;
 
-const index = new Index<CoreProduct>()
+// Initialisation de l'index de recherche vectorielle
+const index = new Index<CoreProduct>();
 
-const Page = async ({ searchParams }: PageProps) => {
-  const query = searchParams.query
+// Composant de page
+export default async function Page({ searchParams }: PageProps) {
+  const query = searchParams.query;
 
+  // Rediriger si la requête est invalide
   if (Array.isArray(query) || !query) {
-    return redirect('/')
+    return redirect('/');
   }
 
+  // Recherche de produits par correspondance textuelle
   let products: CoreProduct[] = await db
     .select()
     .from(productsTable)
@@ -38,17 +44,17 @@ const Page = async ({ searchParams }: PageProps) => {
         .split(' ')
         .join(' & ')}))`
     )
-    .limit(3)
+    .limit(3);
 
+  // Si moins de 3 produits sont trouvés, effectuer une recherche sémantique
   if (products.length < 3) {
-    // search products by semantic similarity
-    const vector = await vectorize(query)
+    const vector = await vectorize(query);
 
     const res = await index.query({
       topK: 5,
       vector,
       includeMetadata: true,
-    })
+    });
 
     const vectorProducts = res
       .filter((existingProduct) => {
@@ -56,53 +62,56 @@ const Page = async ({ searchParams }: PageProps) => {
           products.some((product) => product.id === existingProduct.id) ||
           existingProduct.score < 0.9
         ) {
-          return false
+          return false;
         } else {
-          return true
+          return true;
         }
       })
-      .map(({ metadata }) => metadata!)
+      .map(({ metadata }) => metadata!);
 
-    products.push(...vectorProducts)
+    products.push(...vectorProducts);
   }
 
+  // Afficher un message si aucun produit n'est trouvé
   if (products.length === 0) {
     return (
-      <div className='text-center py-4 bg-white shadow-md rounded-b-md'>
-        <X className='mx-auto h-8 w-8 text-gray-400' />
-        <h3 className='mt-2 text-sm font-semibold text-gray-900'>No results</h3>
-        <p className='mt-1 text-sm mx-auto max-w-prose text-gray-500'>
+      <div className="text-center py-4 bg-white shadow-md rounded-b-md">
+        <X className="mx-auto h-8 w-8 text-gray-400" />
+        <h3 className="mt-2 text-sm font-semibold text-gray-900">No results</h3>
+        <p className="mt-1 text-sm mx-auto max-w-prose text-gray-500">
           Sorry, we couldn't find any matches for{' '}
-          <span className='text-green-600 font-medium'>{query}</span>.
+          <span className="text-green-600 font-medium">{query}</span>.
         </p>
       </div>
-    )
+    );
   }
 
+  // Afficher la liste des produits
   return (
-    <ul className='py-4 divide-y divide-zinc-100 bg-white shadow-md rounded-b-md'>
+    <ul className="py-4 divide-y divide-zinc-100 bg-white shadow-md rounded-b-md">
       {products.slice(0, 3).map((product) => (
         <Link key={product.id} href={`/products/${product.id}`}>
-          <li className='mx-auto py-4 px-8 flex space-x-4'>
-            <div className='relative flex items-center bg-zinc-100 rounded-lg h-40 w-40'>
+          <li className="mx-auto py-4 px-8 flex space-x-4">
+            <div className="relative flex items-center bg-zinc-100 rounded-lg h-40 w-40">
               <Image
-                loading='eager'
+                loading="eager"
                 fill
-                alt='product-image'
+                alt="product-image"
                 src={`/${product.imageId}`}
+                priority // Prioriser le chargement de l'image
               />
             </div>
 
-            <div className='w-full flex-1 space-y-2 py-1'>
-              <h1 className='text-lg font-medium text-gray-900'>
+            <div className="w-full flex-1 space-y-2 py-1">
+              <h1 className="text-lg font-medium text-gray-900">
                 {product.name}
               </h1>
 
-              <p className='prose prose-sm text-gray-500 line-clamp-3'>
+              <p className="prose prose-sm text-gray-500 line-clamp-3">
                 {product.description}
               </p>
 
-              <p className='text-base font-medium text-gray-900'>
+              <p className="text-base font-medium text-gray-900">
                 ${product.price.toFixed(2)}
               </p>
             </div>
@@ -110,7 +119,5 @@ const Page = async ({ searchParams }: PageProps) => {
         </Link>
       ))}
     </ul>
-  )
+  );
 }
-
-export default Page
