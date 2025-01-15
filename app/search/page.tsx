@@ -10,25 +10,28 @@ import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-// Typage des paramètres de recherche
-interface PageProps {
-  searchParams: {
-    [key: string]: string | string[] | undefined;
-  };
-}
-
 // Typage du produit de base (sans les timestamps)
 export type CoreProduct = Omit<Product, 'createdAt' | 'updatedAt'>;
 
 // Initialisation de l'index de recherche vectorielle
 const index = new Index<CoreProduct>();
 
-// Composant de page
-export default async function Page({ searchParams }: PageProps) {
-  const query = searchParams.query;
+// Define the type for searchParams
+type SearchParams = {
+  query?: string | string[];
+};
 
-  // Rediriger si la requête est invalide
-  if (Array.isArray(query) || !query) {
+// Composant de page
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const params = await searchParams;
+  const query = params.query;
+
+  // Ensure query is a single string
+  if (Array.isArray(query) || !query || typeof query !== 'string') {
     return redirect('/');
   }
 

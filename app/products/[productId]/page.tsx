@@ -20,10 +20,10 @@ export async function generateStaticParams() {
 export default async function Page({
   params,
 }: {
-  params: { productId: string };
+  params: Promise<{ productId: string }>;
 }) {
-  // Accéder à `params` de manière asynchrone
-  const { productId } = await Promise.resolve(params);
+  const paramsData = await params;
+  const { productId } = paramsData;
 
   // Vérification de la présence de `productId`
   if (!productId) {
